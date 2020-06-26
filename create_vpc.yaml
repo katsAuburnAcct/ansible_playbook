@@ -207,3 +207,40 @@
       register: privateAcl
     - name: debug
       debug: var=privateAcl
+    - name: Create ig-development security group for public ec2 instances to connect to flask dev server
+      ec2_group:
+        name: ig-development-m5
+        description: Flask dev server access
+        vpc_id: "{{ vpc.vpc.id }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+            cidr_ip: 0.0.0.0/0
+            rule_desc: ssh
+          - proto: tcp
+            ports:
+              - 5000
+            cidr_ip: 173.70.225.197/32
+            rule_desc: flask dev server, from home computer
+          - proto: tcp
+            ports:
+              - 5000
+            cidr_ip: 10.0.1.0/24
+            rule_desc: flask dev server, from public sn
+          - proto: tcp
+            ports:
+              - 5000
+            cidr_ip: 24.196.25.139/32
+            rule_desc: flask dev server, from TA computer
+          - proto: tcp
+            ports:
+              - 5000
+            cidr_ip: 24.239.105.213/32
+            rule_desc: flask dev server, from prof computer
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+      register: igDevelopmentM5securityGroup
+    - name: debug
+      debug: var=igDevelopmentM5securityGroup
