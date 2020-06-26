@@ -69,6 +69,7 @@
         routes:
           - dest: 0.0.0.0/0
             gateway_id: "{{ igw.gateway_id }}"
+        state: present
       register: public_route_table
     - name: Create new nat gateway and allocate new EIP if a nat gateway does not yet exist in the subnet.
       ec2_vpc_nat_gateway:
@@ -91,6 +92,7 @@
           routes:
             - dest: 0.0.0.0/0
               gateway_id: "{{ natGateway.gateway_id }}"
+          state: present
         register: private_route_table_1
     - name: Create private route table for subnet 2
         ec2_vpc_route_table:
@@ -102,4 +104,45 @@
           routes:
             - dest: 0.0.0.0/0
               gateway_id: "{{ natGateway.gateway_id }}"
+          state: present
         register: private_route_table_2
+    - name: Create ig-postgres security group for private RDS
+      ec2_group:
+        name: ig-postgres-m5
+        description: Allow connections to user service from tagged machines
+        vpc_id: "{{ vpc.vpc.id }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: allow all to port 80 and 443
+          - proto: tcp
+              ports:
+                - 5432
+              cidr_ip: 0.0.0.0/0
+      register: igPostgresM5securityGroup
+    - name: debug
+        debug: var=igPostgresM5securityGroup
+    - name: Create ig-postgres-tag security group for public ec2 instances
+        ec2_group:
+          name: ig-postgres-tag-m5
+          description: Allow connections to user service from tagged machines
+          vpc_id: "{{ vpc.vpc.id }}"
+          rules:
+            - proto: tcp
+              ports:
+                - 80
+                - 443
+                - 22
+              cidr_ip: 0.0.0.0/0
+              rule_desc: allow all to port 80 and 443 and 22
+          rules_egress:
+            - proto: tcp
+                from_port: 5432
+                to_port: 5432
+                group_id: "{{ igPostgresM5securityGroup.group_id }}"
+        register: igPostgresM5securityGroup
+    - name: debug
+        debug: var=igPostgresM5securityGroup
