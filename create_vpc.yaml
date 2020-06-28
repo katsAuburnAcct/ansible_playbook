@@ -21,6 +21,7 @@
         tags:
           Name: ig-public-sn1-m5
         cidr: 10.0.1.0/24
+        az: us-east-1a
         state: present
       register: publicSubnet1
     - name: debug
@@ -31,6 +32,7 @@
         tags:
           Name: ig-public-sn2-m5
         cidr: 10.0.4.0/24
+        az: us-east-1b
         state: present
       register: publicSubnet2
     - name: Create Private Subnet 1

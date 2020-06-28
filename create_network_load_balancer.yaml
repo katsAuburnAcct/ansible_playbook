@@ -1,0 +1,73 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ami_id: "ami-09d95fab7fff3776c"
+  module_defaults:
+    group/aws:
+      region: "us-east-1"
+  tasks:
+    - name: Create target group for network load balancer
+      elb_target_group:
+        name: ig-load-balancer-target-group-m5
+        protocol: TCP
+        port: 80
+        vpc_id: "{{ vpc.vpc.id }}"
+        stickiness_enabled: no
+        stickiness_type: source_ip
+        state: present
+      register: networkLoadBalancerTargetGroup
+    - name: debug
+      debug: var=networkLoadBalancerTargetGroup
+
+    - name: allocate eip - reuse unallocated ips (if found) with FREE tag
+      ec2_eip:
+        region: us-east-1
+        in_vpc: yes
+        reuse_existing_ip_allowed: yes
+        tag_name: FREE
+      register: eip1
+    - name: debug
+      debug: var=eip1
+
+    - name: allocate eip - reuse unallocated ips (if found) with FREE tag
+      ec2_eip:
+        region: us-east-1
+        in_vpc: yes
+        reuse_existing_ip_allowed: yes
+        tag_name: FREE
+      register: eip2
+    - name: debug
+      debug: var=eip2
+
+    - name: Create network load balancer
+      elb_network_lb:
+        listeners:
+          - Protocol: TLS
+            Port: 443
+            DefaultActions:
+              - Type: forward
+                TargetGroupName: ig-load-balancer-target-group-m5
+            Certificates:
+              - CertificateArn: "arn:aws:acm:us-east-1:461029170808:certificate/103e9ac6-56cf-402a-a6e0-e7defed0dd0a"
+          - Protocol: TCP
+            Port: 80
+            DefaultActions:
+              - Type: forward
+                TargetGroupName: ig-load-balancer-target-group-m5
+        name: ig-network-load-balancer-m5
+        scheme: internet-facing
+        subnet_mappings:
+          - SubnetId: "{{ publicSubnet1.subnet.id }}"
+            AllocationId: "{{ eip1.allocation_id }}"
+          - SubnetId: "{{ publicSubnet2.subnet.id }}"
+            AllocationId: "{{ eip2.allocation_id }}"
+        tags:
+          Name: ig-network-load-balancer-m5
+        wait: yes
+        state: present
+      register: myNetworkLoadBalancer
+    - name: debug
+      debug: var=myNetworkLoadBalancer
+
+

@@ -2,4 +2,8 @@
 - import_playbook: create_vpc.yaml
 - import_playbook: create_ec2.yaml
 - import_playbook: create_rds.yaml
+- import_playbook: create_launch_template.yaml
+- import_playbook: create_network_load_balancer.yaml
+- import_playbook: create_auto_scaling_group.yaml
+
 #- import_playbook: configure_rds.yaml

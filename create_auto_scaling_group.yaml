@@ -1,0 +1,63 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ami_id: "ami-09d95fab7fff3776c"
+  module_defaults:
+    group/aws:
+      region: "us-east-1"
+  tasks:
+    - name: Create auto scaling group
+      ec2_asg:
+        name: ig-auto-scaling-group-m5
+        availability_zones:
+          - 'us-east-1a'
+          - 'us-east-1b'
+        desired_capacity: 2
+        health_check_type: ELB
+        launch_template:
+          launch_template_name: 'launch-template-m5'
+        min_size: 2
+        max_size: 4
+        metrics_collection: yes
+        replace_all_instances: yes
+        replace_batch_size: 2
+        tags:
+          - Name: ig-auto-scaling-group-m5
+        vpc_zone_identifier:
+          - "{{ publicSubnet1.subnet.id }}"
+          - "{{ publicSubnet2.subnet.id }}"
+        wait_for_instances: yes
+        target_group_arns:
+          - "{{ networkLoadBalancerTargetGroup.target_group_arn }}"
+#        load_balancers:
+#          - "ig-network-load-balancer-m5"
+        state: present
+      register: autoScalingGroup
+    - name: debug
+      debug: var=autoScalingGroup
+
+    - name: Create scaling policy for the auto scaling group
+      ec2_scaling_policy:
+        name: "{{ item.name }}"
+        asg_name: "ig-auto-scaling-group-m5"
+        state: present
+        adjustment_type: "{{ item.adjustment_type }}"
+        min_adjustment_step: "{{ item.min_adjustment_step }}"
+        scaling_adjustment: "{{ item.scaling_adjustment }}"
+        cooldown: "{{ item.cooldown }}"
+      with_items:
+        - name: "Increase Group Size"
+          adjustment_type: "ChangeInCapacity"
+          scaling_adjustment: +1
+          min_adjustment_step: 1
+          cooldown: 500
+        - name: "Decrease Group Size"
+          adjustment_type: "ChangeInCapacity"
+          scaling_adjustment: -1
+          min_adjustment_step: 1
+          cooldown: 500
+      register: autoScalingPolicies
+    - name: debug
+      debug: var=autoScalingPolicies
+
