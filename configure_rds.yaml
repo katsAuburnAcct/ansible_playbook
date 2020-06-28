@@ -1,0 +1,49 @@
+---
+# run ansible-inventory -i ec2_inventory.yaml --graph (or --list) to check for the exact host name
+- hosts: ec2-54-172-140-215.compute-1.amazonaws.com
+  gather_facts: no
+  module_defaults:
+    group/aws:
+      region: "us-east-1"
+  user: ec2-user
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Create the "image_gallery" user within the image_gallery database
+      vars:
+        ansible_ssh_pipelining: true
+        ansible_python_interpreter: /usr/bin/python3
+      postgresql_user:
+        login_host: "{{ hostvars.DUMMY_HOST.myDBEndpoint }}"
+        port: 5432
+        login_user: postgres
+        login_password: defaultpass
+        db: image_gallery
+        name: image_gallery
+        password: simple
+        priv: ALL
+        state: present
+    - name: Create the image_gallery database and set the owner to image_gallery
+      become_user: postgres
+      vars:
+        ansible_ssh_pipelining: true
+        ansible_python_interpreter: /usr/bin/python3
+      postgresql_db:
+        name: image_gallery
+        owner: image_gallery
+        state: present
+    - name: Create the users table within the image_gallery db owned by image_gallery
+      become_user: postgres
+      vars:
+        ansible_ssh_pipelining: true
+        ansible_python_interpreter: /usr/bin/python3
+      postgresql_table:
+        db: image_gallery
+        name: users
+        columns:
+          - username varchar primary key
+          - password varchar
+          - full_name varchar
+        owner: image_gallery
+        state: present

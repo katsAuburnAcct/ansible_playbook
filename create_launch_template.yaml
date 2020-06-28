@@ -1,0 +1,37 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ami_id: "ami-09d95fab7fff3776c"
+  module_defaults:
+    group/aws:
+      region: "us-east-1"
+  tasks:
+    - name: Create ec2 launch template
+      ec2_launch_template:
+        name: "launch-template-m5"
+        image_id: "{{ ami_id }}"
+        key_name: myKeypair
+        instance_type: t3.micro
+        iam_instance_profile: image-gallery-server-role
+        ebs_optimized: no
+        block_device_mappings:
+          device_name: /dev/xvda
+          ebs:
+              delete_on_termination: yes
+              volume_size: 8
+              volume_type: gp2
+              encrypted: no
+        tags:
+          Name: ig-autoscale-m5
+        network_interfaces:
+          device_index: 0
+          associate_public_ip_address: yes
+          groups: "{{ [nginxServersM5securityGroup.group_id, igPostgresTagM5securityGroup.group_id, igDevelopmentM5securityGroup.group_id]|join(',') }}"
+        #base 64 encoded -   base64 launch_template_user_data.txt >launch_template_user_data_base64.txt
+        user_data: IyEvdXNyL2Jpbi9iYXNoCgpleHBvcnQgSU1BR0VfR0FMTEVSWV9CT09UU1RSQVBfVkVSU0lPTj0iMS4wIgoKYXdzIHMzIGNwIHMzOi8vZWR1LmF1LmNjLmthdHMtaW1hZ2UtZ2FsbGVyeS1jb25maWcvZWMyLXByb2QtbGF0ZXN0LnNoIC4vCi91c3IvYmluL2Jhc2ggZWMyLXByb2QtbGF0ZXN0LnNoCg==
+      register: myLaunchTemplate
+    - name: debug
+      debug: var=myLaunchTemplate
+
+

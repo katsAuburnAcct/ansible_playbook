@@ -35,6 +35,7 @@
       register: publicSubnet2
     - name: Create Private Subnet 1
       ec2_vpc_subnet:
+        az: us-east-1a
         vpc_id: "{{ vpc.vpc.id }}"
         tags:
           Name: ig-private-sn1-m5
@@ -43,6 +44,7 @@
       register: privateSubnet1
     - name: Create Private Subnet 2
       ec2_vpc_subnet:
+        az: us-east-1b
         vpc_id: "{{ vpc.vpc.id }}"
         tags:
           Name: ig-private-sn2-m5
@@ -155,6 +157,28 @@
       register: igPostgresM5securityGroup
     - name: debug
       debug: var=igPostgresM5securityGroup
+
+    - name: Create nginx-servers security group (for load balanced servers - used in launch template)
+      ec2_group:
+        name: nginx-servers-m5
+        description: nginx load balanced servers
+        vpc_id: "{{ vpc.vpc.id }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: allow all to port 80 and 443
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+      register: nginxServersM5securityGroup
+    - name: debug
+      debug: var=nginxServersM5securityGroup
+
+
+
     - name: "Create and associate public ACL with public subnets"
       ec2_vpc_nacl:
         vpc_id: "{{ vpc.vpc.id }}"

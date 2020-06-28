@@ -1,0 +1,145 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ami_id: "ami-09d95fab7fff3776c"
+  module_defaults:
+    group/aws:
+      region: "us-east-1"
+  tasks:
+    - name: Create a subnet group fo the postgres db instance
+      rds_subnet_group:
+        name: ig-private-dbgrp-m5
+        description: Private db subnet group for RDS in image-gallery-vpc-m5
+        subnets:
+          - "{{ privateSubnet1.subnet.id }}"
+          - "{{ privateSubnet2.subnet.id }}"
+        state: present
+      register: rdsSubnetGroup
+    - name: debug
+      debug: var=rdsSubnetGroup
+
+    - name: Get the default security group associated with image-gallery-vpc-m5
+      ec2_group_info:
+        filters:
+          group-name: default
+          vpc-id: "{{ vpc.vpc.id }}"
+      register: defaultSecurityGroup
+    - name: debug
+      debug: var=defaultSecurityGroup
+
+    - name: Create postgres db instance
+      # Basic mysql provisioning example
+      rds:
+        command: create
+        db_engine: postgres
+        db_name: image_gallery
+        instance_name: image-gallery
+        instance_type: db.t2.micro
+        license_model: postgresql-license
+        multi_zone: no
+        username: postgres
+        password: defaultpass
+        publicly_accessible: no
+        size: '20'
+        subnet: ig-private-dbgrp-m5
+        tags:
+          Name: image-gallery
+        vpc_security_groups: "{{ [igPostgresM5securityGroup.group_id, defaultSecurityGroup.security_groups.0.group_id]|join(',') }}"
+        wait: yes
+      register: myDB
+    - name: debug
+      debug: var=myDB
+    - name: Register dummy host with variable (allows configure_rds to access this variable)
+      add_host:
+        name: "DUMMY_HOST"
+        myDBEndpoint: "{{ myDB.instance.endpoint }}"
+
+#    - name: install psycopg2
+#      pip:
+#        name: psycopg2
+#    - name: Run queries from SQL script
+#      postgresql_query:
+#        db: image_gallery
+#        login_user: postgres
+#        login_password: defaultpass
+#        path_to_script: ./setup.sql
+#        positional_args:
+#          - 1
+
+#    - name: install postgresql
+#      yum: name={{ item }} state=installed
+#      with_items:
+#        - postgresql
+#        - psycopg2
+#
+#    - name: ensure postgresql is running
+#      service:
+#        name: postgresql
+#        state: started
+#        enabled: yes
+#
+#    - name: Ensure database is created
+#      become: true
+#      become_user: postgres
+#      postgresql_db:
+#        name: image_gallery
+#        state: present
+#
+#    - name: Ensure user has access to db
+#      become: true
+#      become_user: postgres
+#      postgresql_user:
+#        db: image_gallery
+#        name: image_gallery
+#        password: simple
+#        state: present
+
+#    - name: sleep for 180 seconds and continue with play
+#      wait_for:
+#        timeout: 180
+#      delegate_to: localhost
+#
+#    - name: Login to DB and run command
+#      shell: psql -h {{ myDB.instance.endpoint }} -U 'postgres';
+#      environment:
+#        PGPASSWORD: 'defaultpass'
+#      register: loginDb
+#    - name: debug
+#      debug: var=loginDb
+#
+#
+#    - name: Create the "image_gallery" user within the image_gallery database
+#      become: yes
+#      become_user: postgres
+#      vars:
+#        ansible_ssh_pipelining: true
+#      postgresql_user:
+#        db: image_gallery
+#        name: image_gallery
+#        password: simple
+#    - name: Create the image_gallery database and set the owner to image_gallery
+#      become: yes
+#      become_user: postgres
+#      vars:
+#        ansible_ssh_pipelining: true
+#      postgresql_db:
+#        name: image_gallery
+#        owner: image_gallery
+#        state: present
+#    - name: Create the users table within the image_gallery db owned by image_gallery
+#      become: yes
+#      become_user: postgres
+#      vars:
+#        ansible_ssh_pipelining: true
+#      postgresql_table:
+#        db: image_gallery
+#        name: users
+#        columns:
+#          - username varchar primary key
+#          - password varchar
+#          - full_name varchar
+#        owner: image_gallery
+#        state: present
+
+
