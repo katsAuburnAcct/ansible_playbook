@@ -70,4 +70,19 @@
     - name: debug
       debug: var=myNetworkLoadBalancer
 
+    - name: Update the DNS record in Route53 w/ the elastic ip addresses mapped to each of the public subnets
+      route53:
+        zone: katsauburnacct.com.
+        record: ig.katsauburnacct.com.
+        type: A
+        ttl: 300
+        value:
+          - "{{ eip1.public_ip }}"
+          - "{{ eip2.public_ip }}"
+        wait: yes
+        state: present
+      register: dnsRecord
+    - name: debug
+      debug: var=dnsRecord
+
 

@@ -61,3 +61,36 @@
     - name: debug
       debug: var=autoScalingPolicies
 
+    - name: Create metric alarm for auto scaling group
+      ec2_metric_alarm:
+        name: "{{ item.name }}"
+        state: present
+        metric: "CPUUtilization"
+        namespace: "AWS/EC2"
+        statistic: "Average"
+        comparison: "{{ item.comparison }}"
+        threshold: "{{ item.threshold }}"
+        period: 60
+        evaluation_periods: 5
+        unit: "Percent"
+        dimensions:
+          AutoScalingGroupName: ig-auto-scaling-group-m5
+        alarm_actions: "{{ item.alarm_actions }}"
+        with_items:
+          - name: "ig-auto-scaling-group-m5-scale-up"
+            comparison: ">"
+            threshold: 50.0
+            alarm_actions:
+              - "{{ autoScalingPolicies.results[0].arn }}"
+          - name: "ig-auto-scaling-group-m5-scale-down"
+            comparison: "<="
+            threshold: 50.0
+            alarm_actions:
+              - "{{ autoScalingPolicies.results[1].arn }}"
+        when: "{{ autoScalingGroup.max_size }} > 1"
+        register: autoScalingAlarm
+
+    - name: debug
+      debug: var=autoScalingAlarm
+
+
