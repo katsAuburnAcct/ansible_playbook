@@ -76,19 +76,19 @@
         dimensions:
           AutoScalingGroupName: ig-auto-scaling-group-m5
         alarm_actions: "{{ item.alarm_actions }}"
-        with_items:
-          - name: "ig-auto-scaling-group-m5-scale-up"
-            comparison: ">"
-            threshold: 50.0
-            alarm_actions:
-              - "{{ autoScalingPolicies.results[0].arn }}"
-          - name: "ig-auto-scaling-group-m5-scale-down"
-            comparison: "<="
-            threshold: 50.0
-            alarm_actions:
-              - "{{ autoScalingPolicies.results[1].arn }}"
-        when: "{{ autoScalingGroup.max_size }} > 1"
-        register: autoScalingAlarm
+      with_items:
+        - name: "ig-auto-scaling-group-m5-scale-up"
+          comparison: ">"
+          threshold: 50.0
+          alarm_actions:
+            - "{{ autoScalingPolicies.results[0].arn }}"
+        - name: "ig-auto-scaling-group-m5-scale-down"
+          comparison: "<="
+          threshold: 50.0
+          alarm_actions:
+            - "{{ autoScalingPolicies.results[1].arn }}"
+      when: "{{ autoScalingGroup.max_size }} > 1"
+      register: autoScalingAlarm
 
     - name: debug
       debug: var=autoScalingAlarm
