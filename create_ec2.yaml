@@ -49,22 +49,22 @@
     - name: debug
       debug: var=ec2InstanceEip
 
-#    - name: Create temporary ec2 instance for configuring db
-#      ec2:
-#        key_name: my_keypair
-#        group:
-#          - ig-development-m5
-#        instance_type: t3.micro
-#        image: "{{ ami_id }}"
-#        instance_tags:
-#          Name: db-config-ec2-instance
-#          Module: 5
-#        wait: true
-#        exact_count: 1
-#        count_tag: db-config-ec2-instance
-#        vpc_subnet_id: "{{ publicSubnet1.subnet.id }}"
-#        assign_public_ip: yes
-#        user_data: "{{ lookup('file', 'UserDataForConfigDbInstance.sh') }}"
-#      register: ec2InstanceConfigDb
-#    - name: debug
-#      debug: var=ec2InstanceConfigDb
+    - name: Create temporary ec2 instance for configuring db
+      ec2:
+        key_name: my_keypair
+        group:
+          - ig-development-m5
+        instance_type: t3.micro
+        image: "{{ ami_id }}"
+        instance_tags:
+          Name: db-config-ec2-instance
+          Module: 5
+        wait: true
+        exact_count: 1
+        count_tag: db-config-ec2-instance
+        vpc_subnet_id: "{{ publicSubnet1.subnet.id }}"
+        assign_public_ip: yes
+        user_data: "{{ lookup('file', 'UserDataForConfigDbInstance.sh') }}"
+      register: ec2InstanceConfigDb
+    - name: debug
+      debug: var=ec2InstanceConfigDb
